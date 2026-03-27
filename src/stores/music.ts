@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import {
   createTask,
+  createSampleTask,
   queryResults,
   getAudioStreamUrl,
   formatInput,
@@ -247,7 +248,60 @@ export const useMusicStore = defineStore('music', () => {
   }
 
   /**
-   * Poll /query_result periodically for a given task.
+   * Start a description-driven generation: call /release_task with sample_mode=true,
+   * then poll /query_result until done — reusing the same task lifecycle as startGeneration().
+   */
+  async function startDescriptionGeneration(params: {
+    sampleQuery: string
+    model?: string
+    audioFormat?: string
+    batchSize?: number
+  }) {
+    const title = params.sampleQuery.slice(0, 50) || '描述驱动生成'
+    const taskId = `task-${Date.now()}`
+
+    const task: GenerationTask = {
+      id: taskId,
+      serverTaskId: '',
+      status: 'pending',
+      progress: 0,
+      stageText: '',
+      title,
+      createdAt: new Date(),
+      audioResults: [],
+    }
+
+    tasks.value.unshift(task)
+    isGenerating.value = true
+
+    try {
+      const res = await createSampleTask({
+        sample_query: params.sampleQuery,
+        model: params.model || undefined,
+        audio_format: params.audioFormat || undefined,
+        batch_size: params.batchSize,
+      })
+
+      if (res.error || !res.data?.task_id) {
+        task.status = 'failed'
+        task.errorMessage = res.error || '创建任务失败：服务端未返回 task_id'
+        isGenerating.value = activeTasks.value.length > 0
+        return
+      }
+
+      task.serverTaskId = res.data.task_id
+      task.status = 'processing'
+
+      // Reuse the same polling logic
+      startPolling(taskId)
+    } catch (err) {
+      task.status = 'failed'
+      task.errorMessage = err instanceof Error ? err.message : '网络请求失败'
+      isGenerating.value = activeTasks.value.length > 0
+    }
+  }
+
+  /**
    *
    * The server returns real-time progress inside `result` (a JSON string):
    *   - result[0].progress  (0.0–1.0)
@@ -424,6 +478,7 @@ export const useMusicStore = defineStore('music', () => {
     resetAdvancedParams,
     formatInputs,
     startGeneration,
+    startDescriptionGeneration,
     abortTask,
     removeTask,
     saveAsTemplate,
