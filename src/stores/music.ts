@@ -253,9 +253,6 @@ export const useMusicStore = defineStore('music', () => {
    */
   async function startDescriptionGeneration(params: {
     sampleQuery: string
-    model?: string
-    audioFormat?: string
-    batchSize?: number
   }) {
     const title = params.sampleQuery.slice(0, 50) || '描述驱动生成'
     const taskId = `task-${Date.now()}`
@@ -277,9 +274,6 @@ export const useMusicStore = defineStore('music', () => {
     try {
       const res = await createSampleTask({
         sample_query: params.sampleQuery,
-        model: params.model || undefined,
-        audio_format: params.audioFormat || undefined,
-        batch_size: params.batchSize,
       })
 
       if (res.error || !res.data?.task_id) {

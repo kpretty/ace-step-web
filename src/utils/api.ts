@@ -293,18 +293,11 @@ export function getAudioDownloadUrl(filePath: string): string {
  */
 export async function createSampleTask(params: {
   sample_query: string
-  model?: string
-  audio_format?: string
-  batch_size?: number
 }): Promise<ApiResponse<ReleaseTaskResult>> {
-  const body: Record<string, unknown> = {
+  return request<ReleaseTaskResult>('POST', '/release_task', {
     sample_mode: true,
     sample_query: params.sample_query,
-  }
-  if (params.model) body['model'] = params.model
-  if (params.audio_format) body['audio_format'] = params.audio_format
-  if (params.batch_size && params.batch_size > 1) body['batch_size'] = params.batch_size
-  return request<ReleaseTaskResult>('POST', '/release_task', body)
+  })
 }
 
 // ---------------------------------------------------------------------------

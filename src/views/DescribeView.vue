@@ -1,43 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { Sparkles, Disc3, RotateCcw } from 'lucide-vue-next'
 import AppNavbar from '@/components/common/AppNavbar.vue'
 import GenerationPanel from '@/components/generation/GenerationPanel.vue'
-import SelectField from '@/components/params/SelectField.vue'
-import NumberStepper from '@/components/params/NumberStepper.vue'
 import { useMusicStore } from '@/stores/music'
-import { listModels } from '@/utils/api'
 
 const store = useMusicStore()
 
-// Local state for description-driven params
 const sampleQuery = ref('')
-const selectedModel = ref('')
-const selectedFormat = ref('mp3')
-const batchSize = ref<number | null>(1)
-
-// Model list
-interface ModelOption { label: string; value: string }
-const modelOptions = ref<ModelOption[]>([{ label: '默认模型', value: '' }])
-
-onMounted(async () => {
-  try {
-    const res = await listModels()
-    if (!res.error && res.data?.models?.length) {
-      const extra = res.data.models.map((m) => ({
-        label: m.is_default ? `${m.name} (默认)` : m.name,
-        value: m.name,
-      }))
-      modelOptions.value = [{ label: '默认模型', value: '' }, ...extra]
-    }
-  } catch { /* ignore — keep default */ }
-})
-
-const formatOptions = [
-  { label: 'MP3', value: 'mp3' },
-  { label: 'WAV', value: 'wav' },
-  { label: 'FLAC', value: 'flac' },
-]
 
 const canGenerate = computed(
   () => sampleQuery.value.trim().length > 0 && !store.isGenerating,
@@ -47,17 +17,11 @@ async function handleGenerate() {
   if (!canGenerate.value) return
   await store.startDescriptionGeneration({
     sampleQuery: sampleQuery.value.trim(),
-    model: selectedModel.value || undefined,
-    audioFormat: selectedFormat.value,
-    batchSize: batchSize.value ?? 1,
   })
 }
 
 function handleReset() {
   sampleQuery.value = ''
-  selectedModel.value = ''
-  selectedFormat.value = 'mp3'
-  batchSize.value = 1
 }
 </script>
 
@@ -107,36 +71,7 @@ function handleReset() {
               rows="5"
               class="input-field resize-none leading-relaxed w-full"
               placeholder="例如：一首轻快的流行歌曲，带有吉他和钢琴，适合夏日午后，歌词关于海边旅行和自由…"
-              @keydown.ctrl.enter="handleGenerate"
-              @keydown.meta.enter="handleGenerate"
             />
-
-          </div>
-
-          <!-- Optional params row -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <p class="label-text mb-1.5 text-xs">模型</p>
-              <SelectField
-                v-model="selectedModel"
-                :options="modelOptions"
-              />
-            </div>
-            <div>
-              <p class="label-text mb-1.5 text-xs">输出格式</p>
-              <SelectField
-                v-model="selectedFormat"
-                :options="formatOptions"
-              />
-            </div>
-            <div>
-              <p class="label-text mb-1.5 text-xs">批量数量</p>
-              <NumberStepper
-                v-model="batchSize"
-                :min="1"
-                :max="4"
-              />
-            </div>
           </div>
 
           <!-- Action row -->
