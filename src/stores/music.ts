@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   createTask,
   createSampleTask,
@@ -50,12 +50,42 @@ export interface AdvancedParams {
 
 const POLL_INTERVAL = 2000 // ms
 
+// ---------------------------------------------------------------------------
+// Form state persistence
+// ---------------------------------------------------------------------------
+
+const PERSIST_KEY = 'ace-form-state'
+
+interface PersistedFormState {
+  lyrics?: string
+  musicCaption?: string
+  sampleQuery?: string
+  advancedParams?: Partial<AdvancedParams>
+}
+
+function loadFormState(): PersistedFormState {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY)
+    if (raw) return JSON.parse(raw) as PersistedFormState
+  } catch { /* ignore */ }
+  return {}
+}
+
+function saveFormState(state: PersistedFormState) {
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify(state))
+  } catch { /* ignore */ }
+}
+
 export const useMusicStore = defineStore('music', () => {
+  const _persisted = loadFormState()
+
   // Material state
   const referenceAudioFile = ref<File | null>(null)
   const referenceAudioName = ref('')
-  const lyrics = ref('')
-  const musicCaption = ref('')
+  const lyrics = ref(_persisted.lyrics ?? '')
+  const musicCaption = ref(_persisted.musicCaption ?? '')
+  const sampleQuery = ref(_persisted.sampleQuery ?? '')
 
   // Advanced params
   const advancedParams = ref<AdvancedParams>({
@@ -67,6 +97,7 @@ export const useMusicStore = defineStore('music', () => {
     timeSignature: '',
     audioDuration: null,
     batchSize: 1,
+    ...(_persisted.advancedParams ?? {}),
   })
 
   // Generation state
@@ -97,6 +128,24 @@ export const useMusicStore = defineStore('music', () => {
   )
 
   // ---------------------------------------------------------------------------
+  // Persistence watchers — write to localStorage on every change
+  // ---------------------------------------------------------------------------
+
+  function persistFormState() {
+    saveFormState({
+      lyrics: lyrics.value,
+      musicCaption: musicCaption.value,
+      sampleQuery: sampleQuery.value,
+      advancedParams: advancedParams.value,
+    })
+  }
+
+  watch(lyrics, persistFormState)
+  watch(musicCaption, persistFormState)
+  watch(sampleQuery, persistFormState)
+  watch(advancedParams, persistFormState, { deep: true })
+
+  // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
 
@@ -121,6 +170,7 @@ export const useMusicStore = defineStore('music', () => {
       audioDuration: null,
       batchSize: 1,
     }
+    // persistFormState will be triggered by the watch above
   }
 
   /**
@@ -435,6 +485,12 @@ export const useMusicStore = defineStore('music', () => {
     referenceAudioName.value = ''
     lyrics.value = ''
     musicCaption.value = ''
+    // watches above will persist the cleared state automatically
+  }
+
+  /** Reset the describe-mode query (clears its persisted cache too) */
+  function resetDescribeQuery() {
+    sampleQuery.value = ''
   }
 
   // ---------------------------------------------------------------------------
@@ -454,6 +510,7 @@ export const useMusicStore = defineStore('music', () => {
     referenceAudioName,
     lyrics,
     musicCaption,
+    sampleQuery,
     advancedParams,
     tasks,
     isGenerating,
@@ -478,5 +535,6 @@ export const useMusicStore = defineStore('music', () => {
     saveAsTemplate,
     loadTemplate,
     clearMaterials,
+    resetDescribeQuery,
   }
 })
