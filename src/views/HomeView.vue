@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Music4, Sparkles, Layers, Activity, Server, Cpu,
+  Sparkles, Layers, Activity, Server, Cpu,
   CheckCircle, XCircle, Clock, ListChecks,
   Loader, Zap, ChevronRight,
 } from 'lucide-vue-next'
@@ -88,19 +88,6 @@ const queueUsagePct = computed(() => {
     <AppNavbar />
 
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-
-      <!-- ===== Hero ===== -->
-      <div class="mb-10">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center">
-            <Music4 class="w-6 h-6 text-secondary" :stroke-width="1.5" />
-          </div>
-          <div>
-            <h2 class="text-3xl font-bold text-white leading-tight">ACE Step</h2>
-            <p class="text-sm text-slate-400">AI 音乐生成平台</p>
-          </div>
-        </div>
-      </div>
 
       <!-- ===== Quick actions ===== -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
