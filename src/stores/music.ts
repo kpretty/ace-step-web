@@ -60,16 +60,33 @@ export interface AdvancedParams {
 const POLL_INTERVAL = 2000 // ms
 
 // ---------------------------------------------------------------------------
-// Form state persistence
+// Form state persistence (localStorage)
 // ---------------------------------------------------------------------------
 
 const PERSIST_KEY = 'ace-form-state'
+const TASKS_KEY = 'ace-tasks'
 
 interface PersistedFormState {
   lyrics?: string
   musicCaption?: string
   sampleQuery?: string
   advancedParams?: Partial<AdvancedParams>
+}
+
+/** Serialisable snapshot of a task (createdAt → ISO string) */
+interface PersistedTask {
+  id: string
+  serverTaskId: string
+  status: GenerationTask['status']
+  progress: number
+  stageText: string
+  title: string
+  createdAt: string        // ISO string
+  mode: 'describe' | 'advanced'
+  audioResults: AudioResult[]
+  audioUrl?: string
+  duration?: string
+  errorMessage?: string
 }
 
 function loadFormState(): PersistedFormState {
@@ -85,6 +102,99 @@ function saveFormState(state: PersistedFormState) {
     localStorage.setItem(PERSIST_KEY, JSON.stringify(state))
   } catch { /* ignore */ }
 }
+
+function saveTasks(tasks: GenerationTask[]) {
+  try {
+    const serialisable: PersistedTask[] = tasks.map((t) => ({
+      ...t,
+      createdAt: t.createdAt instanceof Date ? t.createdAt.toISOString() : String(t.createdAt),
+    }))
+    localStorage.setItem(TASKS_KEY, JSON.stringify(serialisable))
+  } catch { /* ignore — quota exceeded etc. */ }
+}
+
+function loadTasks(): GenerationTask[] {
+  try {
+    const raw = localStorage.getItem(TASKS_KEY)
+    if (!raw) return []
+    const persisted = JSON.parse(raw) as PersistedTask[]
+    return persisted.map((t) => ({
+      ...t,
+      createdAt: new Date(t.createdAt),
+      // pending tasks had no serverTaskId yet — treat as failed on restore
+      status: t.status === 'pending' ? 'failed' : t.status,
+      errorMessage: t.status === 'pending' ? '页面刷新，任务已中断' : t.errorMessage,
+    }))
+  } catch { /* ignore */ }
+  return []
+}
+
+// ---------------------------------------------------------------------------
+// Reference audio persistence (IndexedDB)
+// ---------------------------------------------------------------------------
+
+const IDB_NAME = 'ace-step-web'
+const IDB_STORE = 'ref-audio'
+const IDB_KEY = 'current'
+
+function openIDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1)
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(IDB_STORE)
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function saveRefAudioToIDB(file: File): Promise<void> {
+  try {
+    const db = await openIDB()
+    const tx = db.transaction(IDB_STORE, 'readwrite')
+    tx.objectStore(IDB_STORE).put({ blob: file, name: file.name, type: file.type }, IDB_KEY)
+    await new Promise<void>((res, rej) => {
+      tx.oncomplete = () => res()
+      tx.onerror = () => rej(tx.error)
+    })
+    db.close()
+  } catch { /* ignore */ }
+}
+
+async function loadRefAudioFromIDB(): Promise<File | null> {
+  try {
+    const db = await openIDB()
+    const tx = db.transaction(IDB_STORE, 'readonly')
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY)
+    const record = await new Promise<{ blob: Blob; name: string; type: string } | undefined>(
+      (res, rej) => {
+        req.onsuccess = () => res(req.result as { blob: Blob; name: string; type: string } | undefined)
+        req.onerror = () => rej(req.error)
+      },
+    )
+    db.close()
+    if (!record) return null
+    return new File([record.blob], record.name, { type: record.type })
+  } catch { /* ignore */ }
+  return null
+}
+
+async function clearRefAudioFromIDB(): Promise<void> {
+  try {
+    const db = await openIDB()
+    const tx = db.transaction(IDB_STORE, 'readwrite')
+    tx.objectStore(IDB_STORE).delete(IDB_KEY)
+    await new Promise<void>((res, rej) => {
+      tx.oncomplete = () => res()
+      tx.onerror = () => rej(tx.error)
+    })
+    db.close()
+  } catch { /* ignore */ }
+}
+
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
 
 export const useMusicStore = defineStore('music', () => {
   const _persisted = loadFormState()
@@ -109,8 +219,8 @@ export const useMusicStore = defineStore('music', () => {
     ...(_persisted.advancedParams ?? {}),
   })
 
-  // Generation state
-  const tasks = ref<GenerationTask[]>([])
+  // Generation state — restored from localStorage on init
+  const tasks = ref<GenerationTask[]>(loadTasks())
   const isGenerating = ref(false)
   const isFormatting = ref(false)
   /** Set to true after formatInputs() updates advanced params — consumed by AdvancedParams to auto-expand */
@@ -137,7 +247,7 @@ export const useMusicStore = defineStore('music', () => {
   )
 
   // ---------------------------------------------------------------------------
-  // Persistence watchers — write to localStorage on every change
+  // Persistence watchers
   // ---------------------------------------------------------------------------
 
   function persistFormState() {
@@ -154,6 +264,33 @@ export const useMusicStore = defineStore('music', () => {
   watch(sampleQuery, persistFormState)
   watch(advancedParams, persistFormState, { deep: true })
 
+  // Persist tasks array on every mutation (deep watch)
+  watch(tasks, () => saveTasks(tasks.value), { deep: true })
+
+  // ---------------------------------------------------------------------------
+  // Restore on boot
+  // ---------------------------------------------------------------------------
+
+  // Resume polling for any tasks that were still processing when the page was
+  // closed/refreshed. Also recompute isGenerating.
+  ;(function restoreSession() {
+    const processing = tasks.value.filter((t) => t.status === 'processing')
+    if (processing.length > 0) {
+      isGenerating.value = true
+      for (const task of processing) {
+        startPolling(task.id)
+      }
+    }
+
+    // Restore reference audio from IndexedDB (async, non-blocking)
+    loadRefAudioFromIDB().then((file) => {
+      if (file) {
+        referenceAudioFile.value = file
+        referenceAudioName.value = file.name
+      }
+    })
+  })()
+
   // ---------------------------------------------------------------------------
   // Actions
   // ---------------------------------------------------------------------------
@@ -161,11 +298,17 @@ export const useMusicStore = defineStore('music', () => {
   function setReferenceAudio(file: File | null) {
     referenceAudioFile.value = file
     referenceAudioName.value = file?.name ?? ''
+    if (file) {
+      saveRefAudioToIDB(file)
+    } else {
+      clearRefAudioFromIDB()
+    }
   }
 
   function clearReferenceAudio() {
     referenceAudioFile.value = null
     referenceAudioName.value = ''
+    clearRefAudioFromIDB()
   }
 
   function resetAdvancedParams() {
@@ -357,7 +500,6 @@ export const useMusicStore = defineStore('music', () => {
   }
 
   /**
-   *
    * The server returns real-time progress inside `result` (a JSON string):
    *   - result[0].progress  (0.0–1.0)
    *   - result[0].stage     ("Generating music...", "Decoding audio...", etc.)
@@ -374,6 +516,9 @@ export const useMusicStore = defineStore('music', () => {
         stopPolling(taskId)
         return
       }
+
+      // Guard: if serverTaskId is not yet available, skip this tick
+      if (!task.serverTaskId) return
 
       try {
         const res = await queryResults([task.serverTaskId])
@@ -506,7 +651,8 @@ export const useMusicStore = defineStore('music', () => {
     referenceAudioName.value = ''
     lyrics.value = ''
     musicCaption.value = ''
-    // watches above will persist the cleared state automatically
+    clearRefAudioFromIDB()
+    // watches above will persist the cleared text state automatically
   }
 
   /** Reset the describe-mode query (clears its persisted cache too) */
@@ -533,6 +679,7 @@ export const useMusicStore = defineStore('music', () => {
     if (result.vocalLanguage) advancedParams.value.vocalLanguage = result.vocalLanguage
 
     // Fetch the generated audio as a blob and set it as reference audio
+    // setReferenceAudio will persist it to IndexedDB automatically
     try {
       const { fetchAudioBlob } = await import('@/utils/api')
       const { blobUrl, filename } = await fetchAudioBlob(result.filePath)
