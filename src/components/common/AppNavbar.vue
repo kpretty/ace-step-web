@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Music4, Settings, X, ExternalLink } from 'lucide-vue-next'
+import { useRouter, useRoute } from 'vue-router'
 import { getApiSettings, updateApiSettings } from '@/utils/api'
+
+const router = useRouter()
+const route = useRoute()
 
 const showSettings = ref(false)
 const settings = getApiSettings()
@@ -18,6 +22,7 @@ function handleApiKeyInput(e: Event) {
 <template>
   <header class="fixed top-4 left-4 right-4 z-50">
     <nav class="glass-card px-6 py-3 flex items-center justify-between max-w-7xl mx-auto" aria-label="主导航">
+      <!-- Logo -->
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-xl bg-secondary/20 flex items-center justify-center">
           <Music4 class="w-5 h-5 text-secondary" :stroke-width="1.5" />
@@ -28,6 +33,33 @@ function handleApiKeyInput(e: Event) {
         </div>
       </div>
 
+      <!-- Tab navigation -->
+      <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1" role="tablist">
+        <button
+          role="tab"
+          :aria-selected="route.name === 'describe'"
+          class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary/50"
+          :class="route.name === 'describe'
+            ? 'bg-secondary/30 text-white'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'"
+          @click="router.push('/describe')"
+        >
+          描述驱动
+        </button>
+        <button
+          role="tab"
+          :aria-selected="route.name === 'generator'"
+          class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary/50"
+          :class="route.name === 'generator'
+            ? 'bg-secondary/30 text-white'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'"
+          @click="router.push('/')"
+        >
+          进阶创作
+        </button>
+      </div>
+
+      <!-- Right actions -->
       <div class="flex items-center gap-3">
         <span class="text-xs font-medium text-accent bg-accent/10 px-2.5 py-1 rounded-full">
           v1.0

@@ -8,6 +8,11 @@ const router = createRouter({
       name: 'generator',
       component: () => import('@/views/GeneratorView.vue'),
     },
+    {
+      path: '/describe',
+      name: 'describe',
+      component: () => import('@/views/DescribeView.vue'),
+    },
   ],
 })
 

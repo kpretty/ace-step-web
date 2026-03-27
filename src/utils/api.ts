@@ -285,6 +285,21 @@ export function getAudioDownloadUrl(filePath: string): string {
   return getAudioStreamUrl(filePath)
 }
 
+/**
+ * POST /release_task — 描述驱动生成（sample_mode=true）
+ *
+ * 后端使用 LLM 从自然语言描述自动生成 caption/lyrics/metas，然后直接出音频。
+ * 与 createTask() 共享相同响应格式和轮询流程。
+ */
+export async function createSampleTask(params: {
+  sample_query: string
+}): Promise<ApiResponse<ReleaseTaskResult>> {
+  return request<ReleaseTaskResult>('POST', '/release_task', {
+    sample_mode: true,
+    sample_query: params.sample_query,
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Format Input
 // ---------------------------------------------------------------------------

@@ -3,6 +3,11 @@ import { Zap, Disc3 } from 'lucide-vue-next'
 import { useMusicStore } from '@/stores/music'
 import TaskCard from './TaskCard.vue'
 
+defineProps<{
+  /** 隐藏面板内置的生成按钮（当父级自己提供生成按钮时使用） */
+  hideGenerateButton?: boolean
+}>()
+
 const store = useMusicStore()
 </script>
 
@@ -12,7 +17,7 @@ const store = useMusicStore()
     <div class="flex items-center justify-between">
       <h2 class="section-title">
         <Zap class="w-5 h-5 text-accent" :stroke-width="1.5" />
-        音乐生成
+        生成结果
       </h2>
       <div class="flex items-center gap-3">
         <span
@@ -22,6 +27,7 @@ const store = useMusicStore()
           {{ store.activeTasks.length }} 个进行中
         </span>
         <button
+          v-if="!hideGenerateButton"
           class="btn-primary text-sm py-2.5 px-5"
           :disabled="!store.canGenerate"
           :title="
@@ -54,7 +60,7 @@ const store = useMusicStore()
         v-if="store.tasks.length === 0"
         class="text-center text-sm text-slate-500 py-10"
       >
-        暂无生成任务。填写上方原材料后点击「开始生成」。
+        暂无生成任务，点击「开始生成」后结果将在这里显示。
       </p>
 
       <TransitionGroup
