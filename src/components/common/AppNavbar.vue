@@ -20,8 +20,8 @@ function handleApiKeyInput(e: Event) {
 </script>
 
 <template>
-  <header class="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 sm:px-6 lg:px-8">
-    <nav class="glass-card py-3 px-6 flex items-center justify-between w-full max-w-7xl" aria-label="主导航">
+  <header class="fixed top-4 left-0 right-0 z-50 flex justify-center">
+    <nav class="glass-card py-3 px-6 flex items-center justify-between w-full max-w-7xl mx-4 sm:mx-6 lg:mx-8" aria-label="主导航">
       <!-- Logo -->
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-xl bg-secondary/20 flex items-center justify-center">

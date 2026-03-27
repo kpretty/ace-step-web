@@ -6,7 +6,10 @@ import {
   queryResults,
   getAudioStreamUrl,
   formatInput,
+  fetchRandomSample,
   type TaskResultParsed,
+  type RandomSampleSimple,
+  type RandomSampleCustom,
 } from '@/utils/api'
 
 export interface AudioResult {
@@ -223,6 +226,7 @@ export const useMusicStore = defineStore('music', () => {
   const tasks = ref<GenerationTask[]>(loadTasks())
   const isGenerating = ref(false)
   const isFormatting = ref(false)
+  const isRandomFilling = ref(false)
   /** Set to true after formatInputs() updates advanced params — consumed by AdvancedParams to auto-expand */
   const shouldExpandParams = ref(false)
   const pollTimers = ref<Record<string, number>>({})
@@ -323,6 +327,54 @@ export const useMusicStore = defineStore('music', () => {
       batchSize: 1,
     }
     // persistFormState will be triggered by the watch above
+  }
+
+  /**
+   * Call /create_random_sample to fill the form with a random preset.
+   *
+   * - mode='describe' → simple_mode：填充 sampleQuery（描述驱动页输入框）
+   * - mode='advanced' → custom_mode：填充 musicCaption / lyrics / advancedParams（进阶创作页）
+   *
+   * 接口由本地预置数据驱动，响应 <5ms，无需骨架屏。
+   * 保证动画至少播放一帧由调用方（300ms Promise.all）控制。
+   */
+  async function randomFill(
+    mode: 'describe' | 'advanced' = 'advanced',
+  ): Promise<{ ok: boolean; error?: string }> {
+    if (isRandomFilling.value) return { ok: false }
+    isRandomFilling.value = true
+    try {
+      const sampleType = mode === 'describe' ? 'simple_mode' : 'custom_mode'
+      const res = await fetchRandomSample(sampleType)
+      if (res.error || !res.data) {
+        return { ok: false, error: res.error || '获取随机样本失败' }
+      }
+
+      if (mode === 'describe') {
+        // simple_mode: 填充描述驱动的自然语言输入框
+        const d = res.data as RandomSampleSimple
+        sampleQuery.value = d.description
+      } else {
+        // custom_mode: 填充进阶创作的所有字段
+        const d = res.data as RandomSampleCustom
+        if (d.caption) musicCaption.value = d.caption
+        // instrumental 由 lyrics 是否为空体现：custom_mode 有歌词就填，无则清空
+        lyrics.value = d.lyrics ?? ''
+        if (d.bpm != null) advancedParams.value.bpm = d.bpm
+        if (d.duration != null) advancedParams.value.audioDuration = Math.round(d.duration)
+        if (d.keyscale) advancedParams.value.keyScale = d.keyscale
+        if (d.timesignature) advancedParams.value.timeSignature = d.timesignature
+        if (d.language) advancedParams.value.vocalLanguage = d.language
+        // custom_mode 有参数填充，自动展开参数面板
+        shouldExpandParams.value = true
+      }
+
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : '网络请求失败' }
+    } finally {
+      isRandomFilling.value = false
+    }
   }
 
   /**
@@ -717,6 +769,7 @@ export const useMusicStore = defineStore('music', () => {
     tasks,
     isGenerating,
     isFormatting,
+    isRandomFilling,
     shouldExpandParams,
 
     // Computed
@@ -729,6 +782,7 @@ export const useMusicStore = defineStore('music', () => {
     setReferenceAudio,
     clearReferenceAudio,
     resetAdvancedParams,
+    randomFill,
     formatInputs,
     startGeneration,
     startDescriptionGeneration,

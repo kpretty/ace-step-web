@@ -369,3 +369,42 @@ export async function fetchHealth(): Promise<ApiResponse<HealthResult>> {
 export async function fetchStats(): Promise<ApiResponse<StatsResult>> {
   return request<StatsResult>('GET', '/v1/stats')
 }
+
+// ---------------------------------------------------------------------------
+// Random Sample
+// ---------------------------------------------------------------------------
+
+/** simple_mode: 仅描述 + 语言，用于描述驱动页 */
+export interface RandomSampleSimple {
+  description: string
+  instrumental: boolean
+  vocal_language: string
+}
+
+/** custom_mode: 完整参数，用于进阶创作页 */
+export interface RandomSampleCustom {
+  think: boolean
+  caption: string
+  lyrics: string
+  bpm: number | null
+  duration: number | null
+  keyscale: string
+  language: string
+  timesignature: string
+}
+
+export type RandomSampleResult = RandomSampleSimple | RandomSampleCustom
+
+/**
+ * POST /create_random_sample — 获取随机样本（本地预置数据，<5ms）
+ *
+ * - sample_type="simple_mode"  → 描述驱动页，返回 description + vocal_language
+ * - sample_type="custom_mode"  → 进阶创作页，返回完整的 caption/lyrics/bpm/... 
+ */
+export async function fetchRandomSample(
+  sampleType: 'simple_mode' | 'custom_mode' = 'simple_mode',
+): Promise<ApiResponse<RandomSampleResult>> {
+  return request<RandomSampleResult>('POST', '/create_random_sample', {
+    sample_type: sampleType,
+  })
+}

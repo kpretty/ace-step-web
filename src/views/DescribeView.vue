@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Sparkles, Disc3, RotateCcw } from 'lucide-vue-next'
+import { ref, computed } from 'vue'
+import { Sparkles, Disc3, RotateCcw, Shuffle } from 'lucide-vue-next'
 import AppNavbar from '@/components/common/AppNavbar.vue'
 import GenerationPanel from '@/components/generation/GenerationPanel.vue'
 import { useMusicStore } from '@/stores/music'
@@ -15,6 +15,27 @@ const sampleQuery = computed({
 const canGenerate = computed(
   () => store.sampleQuery.trim().length > 0 && !store.isGenerating,
 )
+
+const isSpinning = ref(false)
+const randomError = ref('')
+
+async function handleRandomFill() {
+  if (isSpinning.value) return
+  randomError.value = ''
+  isSpinning.value = true
+
+  const [result] = await Promise.all([
+    store.randomFill('describe'),
+    new Promise<void>((resolve) => setTimeout(resolve, 300)),
+  ])
+
+  isSpinning.value = false
+
+  if (!result.ok) {
+    randomError.value = result.error ?? '随机失败'
+    setTimeout(() => { randomError.value = '' }, 3000)
+  }
+}
 
 async function handleGenerate() {
   if (!canGenerate.value) return
@@ -65,36 +86,62 @@ async function handleGenerate() {
           </div>
 
           <!-- Action row -->
-          <div class="flex items-center justify-between pt-1">
-            <button
-              class="btn-ghost text-sm py-2 px-4 flex items-center gap-1.5 cursor-pointer"
-              :disabled="store.isGenerating"
-              aria-label="重置"
-              @click="store.resetDescribeQuery()"
-            >
-              <RotateCcw class="w-3.5 h-3.5" :stroke-width="1.5" />
-              重置
-            </button>
+          <div class="space-y-3 pt-1">
+            <!-- Error hint -->
+            <transition name="fade">
+              <p v-if="randomError" class="text-xs text-red-400 flex items-center gap-1.5" role="alert">
+                {{ randomError }}
+              </p>
+            </transition>
 
-            <button
-              class="btn-primary text-sm py-2.5 px-6"
-              :disabled="!canGenerate"
-              :title="
-                store.isGenerating
-                  ? '当前有任务正在生成'
-                  : !sampleQuery.trim()
-                    ? '请先输入音乐描述'
-                    : ''
-              "
-              @click="handleGenerate"
-            >
-              <Disc3
-                class="w-4 h-4"
-                :class="{ 'animate-spin': store.isGenerating }"
-                :stroke-width="1.5"
-              />
-              {{ store.isGenerating ? '生成中...' : '开始生成' }}
-            </button>
+            <div class="flex items-center justify-between">
+              <!-- Left: Reset + Random -->
+              <div class="flex items-center gap-2">
+                <button
+                  class="btn-ghost text-sm py-2 px-4 flex items-center gap-1.5 cursor-pointer"
+                  :disabled="store.isGenerating"
+                  aria-label="重置"
+                  @click="store.resetDescribeQuery()"
+                >
+                  <RotateCcw class="w-3.5 h-3.5" :stroke-width="1.5" />
+                  重置
+                </button>
+                <button
+                  class="btn-ghost text-sm py-2 px-4 flex items-center gap-1.5 cursor-pointer"
+                  :disabled="store.isGenerating || isSpinning"
+                  aria-label="随机填充音乐描述"
+                  @click="handleRandomFill"
+                >
+                  <Shuffle
+                    class="w-3.5 h-3.5"
+                    :class="{ 'shuffle-spin': isSpinning }"
+                    :stroke-width="1.5"
+                  />
+                  随机一下
+                </button>
+              </div>
+
+              <!-- Right: Generate -->
+              <button
+                class="btn-primary text-sm py-2.5 px-6"
+                :disabled="!canGenerate"
+                :title="
+                  store.isGenerating
+                    ? '当前有任务正在生成'
+                    : !sampleQuery.trim()
+                      ? '请先输入音乐描述'
+                      : ''
+                "
+                @click="handleGenerate"
+              >
+                <Disc3
+                  class="w-4 h-4"
+                  :class="{ 'animate-spin': store.isGenerating }"
+                  :stroke-width="1.5"
+                />
+                {{ store.isGenerating ? '生成中...' : '开始生成' }}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -104,3 +151,22 @@ async function handleGenerate() {
     </main>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@keyframes shuffle-once {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.shuffle-spin {
+  animation: shuffle-once 0.3s ease-in-out forwards;
+}
+</style>
