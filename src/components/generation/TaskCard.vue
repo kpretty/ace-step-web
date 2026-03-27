@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import {
   Loader, Check, AlertCircle, Trash2,
-  Clock, StopCircle, Ban,
+  Clock, StopCircle, Ban, ArrowRightCircle,
 } from 'lucide-vue-next'
-import { computed } from 'vue'
-import type { GenerationTask } from '@/stores/music'
+import { ref, computed } from 'vue'
+import type { GenerationTask, AudioResult } from '@/stores/music'
 import AudioTrack from './AudioTrack.vue'
 
 const props = defineProps<{
   task: GenerationTask
+  /** Passed down from GenerationPanel so we know which mode created this task */
+  taskMode: 'describe' | 'advanced'
 }>()
 
 const emit = defineEmits<{
   remove: [id: string]
   abort: [id: string]
+  iterate: [result: AudioResult]
 }>()
+
+const iteratingIndex = ref<number | null>(null)
 
 const progressPercent = computed(() => Math.round(props.task.progress))
 
@@ -48,6 +53,11 @@ function formatTime(date: Date): string {
 
 function handleAbort() {
   emit('abort', props.task.id)
+}
+
+function handleIterate(result: AudioResult, index: number) {
+  iteratingIndex.value = index
+  emit('iterate', result)
 }
 </script>
 
@@ -147,13 +157,39 @@ function handleAbort() {
       v-if="task.status === 'completed' && task.audioResults.length > 0"
       class="px-5 pb-4 space-y-4"
     >
-      <AudioTrack
+      <div
         v-for="(result, idx) in task.audioResults"
         :key="result.filePath"
-        :result="result"
-        :index="idx"
-        :total="task.audioResults.length"
-      />
+        class="space-y-2"
+      >
+        <AudioTrack
+          :result="result"
+          :index="idx"
+          :total="task.audioResults.length"
+        />
+
+        <!-- Iterate button — only shown for describe-mode tasks -->
+        <div v-if="taskMode === 'describe'" class="flex justify-end">
+          <button
+            class="flex items-center gap-1.5 text-xs font-medium text-secondary hover:text-white bg-secondary/10 hover:bg-secondary/20 border border-secondary/20 hover:border-secondary/40 px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary/40 disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="iteratingIndex !== null"
+            aria-label="迭代到进阶创作"
+            @click="handleIterate(result, idx)"
+          >
+            <Loader
+              v-if="iteratingIndex === idx"
+              class="w-3.5 h-3.5 animate-spin"
+              :stroke-width="1.5"
+            />
+            <ArrowRightCircle
+              v-else
+              class="w-3.5 h-3.5"
+              :stroke-width="1.5"
+            />
+            迭代到进阶创作
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

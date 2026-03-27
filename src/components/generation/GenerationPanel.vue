@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Zap, Disc3 } from 'lucide-vue-next'
 import { useMusicStore } from '@/stores/music'
+import type { AudioResult } from '@/stores/music'
 import TaskCard from './TaskCard.vue'
 
 const props = defineProps<{
@@ -12,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const store = useMusicStore()
+const router = useRouter()
 
 const filteredTasks = computed(() =>
   store.tasks.filter((t) => t.mode === props.mode),
@@ -22,6 +25,11 @@ const filteredActiveTasks = computed(() =>
     (t) => t.status === 'processing' || t.status === 'pending',
   ),
 )
+
+async function handleIterate(result: AudioResult) {
+  await store.iterateToAdvanced(result)
+  router.push('/generator')
+}
 </script>
 
 <template>
@@ -85,8 +93,10 @@ const filteredActiveTasks = computed(() =>
           v-for="task in filteredTasks"
           :key="task.id"
           :task="task"
+          :task-mode="mode"
           @remove="store.removeTask"
           @abort="store.abortTask"
+          @iterate="handleIterate"
         />
       </TransitionGroup>
     </div>
