@@ -429,8 +429,11 @@ export const useMusicStore = defineStore('music', () => {
               seed: r.seed_value ?? '',
               model: r.dit_model ?? '',
               // Capture generation metadata for iterate-to-advanced
-              lyrics: r.metas?.lyrics ?? r.lyrics ?? '',
-              prompt: r.metas?.prompt ?? r.prompt ?? '',
+              // Top-level r.lyrics / r.prompt are the authoritative fields for
+              // sample_mode results; metas.lyrics / metas.prompt are empty strings
+              // in that case, so we prefer the top-level values first.
+              lyrics: r.lyrics || r.metas?.lyrics || '',
+              prompt: r.prompt || r.metas?.prompt || '',
               bpm: r.metas?.bpm ?? null,
               keyScale: r.metas?.keyscale ?? '',
               timeSignature: r.metas?.timesignature ?? '',
