@@ -40,6 +40,7 @@ async function handleGenerate() {
 
     <!-- Main content -->
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" aria-label="描述驱动生成">
+      <p class="text-sm text-slate-400 mb-6">输入一段自然语言，AI 自动生成歌词、编曲参数，直接出音频。</p>
       <div class="space-y-6">
         <!-- Input card -->
         <section class="glass-card p-6 space-y-5" aria-label="音乐描述输入">

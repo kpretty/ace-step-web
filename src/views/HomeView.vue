@@ -64,6 +64,17 @@ onUnmounted(() => {
 
 const serviceOnline = computed(() => health.value?.status === 'ok')
 
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return '夜深了，还在创作？'
+  if (h < 9) return '早上好，开启音乐新的一天吧'
+  if (h < 12) return '上午好，今天想创作什么？'
+  if (h < 14) return '中午好，灵感来了就动手吧'
+  if (h < 18) return '下午好，让音乐陪你度过这段时光'
+  if (h < 22) return '晚上好，用音乐记录今天吧'
+  return '深夜创作，灵感最旺的时刻'
+})
+
 const avgJobTime = computed(() => {
   const s = stats.value?.avg_job_seconds
   if (!s || s <= 0) return '—'
@@ -88,6 +99,9 @@ const queueUsagePct = computed(() => {
     <AppNavbar />
 
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+
+      <!-- ===== Greeting ===== -->
+      <p class="text-sm text-slate-400 mb-6">{{ greeting }}</p>
 
       <!-- ===== Quick actions ===== -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

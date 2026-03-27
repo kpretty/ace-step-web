@@ -21,6 +21,7 @@ import GenerationPanel from '@/components/generation/GenerationPanel.vue'
 
     <!-- Main content -->
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" aria-label="音乐生成器">
+      <p class="text-sm text-slate-400 mb-6">手动填写歌词与音乐描述，精细调节 BPM、调性、时长等参数，全面掌控每一次生成。</p>
       <!-- Vertical layout: Materials → Params → Generation -->
       <div class="space-y-6">
         <!-- 1. Materials -->
