@@ -42,12 +42,9 @@ async function handleGenerate() {
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" aria-label="描述驱动生成">
       <!-- Page heading -->
       <div class="mb-8 text-center sm:text-left">
-        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">
           描述驱动生成
         </h2>
-        <p class="text-slate-400 text-sm sm:text-base max-w-2xl">
-          用自然语言描述你想要的音乐，AI 将自动理解风格、节奏、情感，直接为你生成作品。
-        </p>
       </div>
 
       <div class="space-y-6">

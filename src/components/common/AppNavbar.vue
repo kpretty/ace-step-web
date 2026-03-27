@@ -37,6 +37,17 @@ function handleApiKeyInput(e: Event) {
       <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1" role="tablist">
         <button
           role="tab"
+          :aria-selected="route.name === 'home'"
+          class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary/50"
+          :class="route.name === 'home'
+            ? 'bg-secondary/30 text-white'
+            : 'text-slate-400 hover:text-white hover:bg-white/5'"
+          @click="router.push('/')"
+        >
+          主页
+        </button>
+        <button
+          role="tab"
           :aria-selected="route.name === 'describe'"
           class="px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary/50"
           :class="route.name === 'describe'
@@ -53,7 +64,7 @@ function handleApiKeyInput(e: Event) {
           :class="route.name === 'generator'
             ? 'bg-secondary/30 text-white'
             : 'text-slate-400 hover:text-white hover:bg-white/5'"
-          @click="router.push('/')"
+          @click="router.push('/generator')"
         >
           进阶创作
         </button>
