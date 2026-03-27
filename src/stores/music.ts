@@ -17,6 +17,13 @@ export interface AudioResult {
   duration: string
   seed: string
   model: string
+  /** Fields populated from server metas — used for iterate-to-advanced */
+  lyrics?: string
+  prompt?: string
+  bpm?: number | null
+  keyScale?: string
+  timeSignature?: string
+  vocalLanguage?: string
 }
 
 export interface GenerationTask {
@@ -421,6 +428,13 @@ export const useMusicStore = defineStore('music', () => {
               duration: formatDuration(r.metas?.duration ?? 0),
               seed: r.seed_value ?? '',
               model: r.dit_model ?? '',
+              // Capture generation metadata for iterate-to-advanced
+              lyrics: r.metas?.lyrics ?? r.lyrics ?? '',
+              prompt: r.metas?.prompt ?? r.prompt ?? '',
+              bpm: r.metas?.bpm ?? null,
+              keyScale: r.metas?.keyscale ?? '',
+              timeSignature: r.metas?.timesignature ?? '',
+              vocalLanguage: '',
             }))
 
           task.audioResults = results
@@ -497,6 +511,40 @@ export const useMusicStore = defineStore('music', () => {
     sampleQuery.value = ''
   }
 
+  /**
+   * Populate the advanced-creation form from a describe-mode AudioResult,
+   * then set the audio file as reference audio so the user can iterate.
+   *
+   * Callers should navigate to /generator after this returns.
+   * Returns false if the blob fetch fails (caller can show an error).
+   */
+  async function iterateToAdvanced(result: AudioResult): Promise<boolean> {
+    // Fill text fields — prefer metas values, fall back gracefully
+    if (result.lyrics) lyrics.value = result.lyrics
+    if (result.prompt) musicCaption.value = result.prompt
+
+    // Fill advanced params from metas
+    if (result.bpm != null) advancedParams.value.bpm = result.bpm
+    if (result.keyScale) advancedParams.value.keyScale = result.keyScale
+    if (result.timeSignature) advancedParams.value.timeSignature = result.timeSignature
+    if (result.vocalLanguage) advancedParams.value.vocalLanguage = result.vocalLanguage
+
+    // Fetch the generated audio as a blob and set it as reference audio
+    try {
+      const { fetchAudioBlob } = await import('@/utils/api')
+      const { blobUrl, filename } = await fetchAudioBlob(result.filePath)
+      const res = await fetch(blobUrl)
+      const blob = await res.blob()
+      URL.revokeObjectURL(blobUrl)
+      const file = new File([blob], filename, { type: blob.type })
+      setReferenceAudio(file)
+    } catch {
+      // Non-fatal: proceed without reference audio
+    }
+
+    return true
+  }
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
@@ -534,6 +582,7 @@ export const useMusicStore = defineStore('music', () => {
     formatInputs,
     startGeneration,
     startDescriptionGeneration,
+    iterateToAdvanced,
     abortTask,
     removeTask,
     saveAsTemplate,
