@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { Sparkles, Disc3, RotateCcw } from 'lucide-vue-next'
 import AppNavbar from '@/components/common/AppNavbar.vue'
 import GenerationPanel from '@/components/generation/GenerationPanel.vue'
@@ -7,21 +7,20 @@ import { useMusicStore } from '@/stores/music'
 
 const store = useMusicStore()
 
-const sampleQuery = ref('')
+const sampleQuery = computed({
+  get: () => store.sampleQuery,
+  set: (v: string) => { store.sampleQuery = v },
+})
 
 const canGenerate = computed(
-  () => sampleQuery.value.trim().length > 0 && !store.isGenerating,
+  () => store.sampleQuery.trim().length > 0 && !store.isGenerating,
 )
 
 async function handleGenerate() {
   if (!canGenerate.value) return
   await store.startDescriptionGeneration({
-    sampleQuery: sampleQuery.value.trim(),
+    sampleQuery: store.sampleQuery.trim(),
   })
-}
-
-function handleReset() {
-  sampleQuery.value = ''
 }
 </script>
 
@@ -80,7 +79,7 @@ function handleReset() {
               class="btn-ghost text-sm py-2 px-4 flex items-center gap-1.5 cursor-pointer"
               :disabled="store.isGenerating"
               aria-label="重置"
-              @click="handleReset"
+              @click="store.resetDescribeQuery()"
             >
               <RotateCcw class="w-3.5 h-3.5" :stroke-width="1.5" />
               重置

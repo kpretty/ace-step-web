@@ -1,20 +1,30 @@
 <script setup lang="ts">
-import { Layers } from 'lucide-vue-next'
+import { Layers, RotateCcw } from 'lucide-vue-next'
+import { useMusicStore } from '@/stores/music'
 import AudioUpload from './AudioUpload.vue'
 import LyricsEditor from './LyricsEditor.vue'
 import MusicCaption from './MusicCaption.vue'
-import SaveTemplate from './SaveTemplate.vue'
+
+const store = useMusicStore()
 </script>
 
 <template>
   <section class="glass-card p-6" aria-label="音乐原材料">
-    <!-- Section header + Save template -->
+    <!-- Section header + Reset -->
     <div class="flex items-center justify-between mb-6">
       <h2 class="section-title">
         <Layers class="w-5 h-5 text-secondary" :stroke-width="1.5" />
         音乐原材料
       </h2>
-      <SaveTemplate />
+      <button
+        class="btn-ghost text-sm py-2 px-4 flex items-center gap-1.5 cursor-pointer"
+        :disabled="store.isGenerating"
+        aria-label="重置原材料"
+        @click="store.clearMaterials()"
+      >
+        <RotateCcw class="w-3.5 h-3.5" :stroke-width="1.5" />
+        重置
+      </button>
     </div>
 
     <!-- Horizontal layout: Audio | Lyrics | Caption -->
