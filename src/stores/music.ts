@@ -29,6 +29,8 @@ export interface GenerationTask {
   stageText: string
   title: string
   createdAt: Date
+  /** Which UI mode created this task — used to scope task lists per view */
+  mode: 'describe' | 'advanced'
   /** Multiple audio results when batch_size > 1 */
   audioResults: AudioResult[]
   /** Shortcut to first audio URL (for single-result convenience) */
@@ -257,6 +259,7 @@ export const useMusicStore = defineStore('music', () => {
       stageText: '',
       title,
       createdAt: new Date(),
+      mode: 'advanced',
       audioResults: [],
     }
 
@@ -315,6 +318,7 @@ export const useMusicStore = defineStore('music', () => {
       stageText: '',
       title,
       createdAt: new Date(),
+      mode: 'describe',
       audioResults: [],
     }
 

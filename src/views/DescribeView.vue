@@ -105,7 +105,7 @@ async function handleGenerate() {
         </section>
 
         <!-- Generation results — reuse GenerationPanel, hide its own generate button -->
-        <GenerationPanel :hide-generate-button="true" />
+        <GenerationPanel :hide-generate-button="true" mode="describe" />
       </div>
     </main>
   </div>

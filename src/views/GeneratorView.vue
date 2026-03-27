@@ -37,7 +37,7 @@ import GenerationPanel from '@/components/generation/GenerationPanel.vue'
         <AdvancedParams />
 
         <!-- 3. Generation -->
-        <GenerationPanel />
+        <GenerationPanel mode="advanced" />
       </div>
     </main>
   </div>
