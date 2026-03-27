@@ -328,3 +328,44 @@ export async function formatInput(params: {
     temperature: params.temperature ?? 0.85,
   })
 }
+
+// ---------------------------------------------------------------------------
+// Health & Stats
+// ---------------------------------------------------------------------------
+
+export interface HealthResult {
+  status: string
+  service: string
+  version: string
+  models_initialized: boolean
+  llm_initialized: boolean
+  loaded_model: string | null
+  loaded_lm_model: string | null
+}
+
+export interface StatsResult {
+  jobs: {
+    total: number
+    queued: number
+    running: number
+    succeeded: number
+    failed: number
+  }
+  queue_size: number
+  queue_maxsize: number
+  avg_job_seconds: number
+}
+
+/**
+ * GET /health — 服务健康状态
+ */
+export async function fetchHealth(): Promise<ApiResponse<HealthResult>> {
+  return request<HealthResult>('GET', '/health')
+}
+
+/**
+ * GET /v1/stats — 任务队列统计
+ */
+export async function fetchStats(): Promise<ApiResponse<StatsResult>> {
+  return request<StatsResult>('GET', '/v1/stats')
+}

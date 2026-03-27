@@ -23,12 +23,9 @@ import GenerationPanel from '@/components/generation/GenerationPanel.vue'
     <main class="relative z-10 pt-24 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" aria-label="音乐生成器">
       <!-- Page heading -->
       <div class="mb-8 text-center sm:text-left">
-        <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">
+        <h2 class="text-2xl sm:text-3xl font-bold text-white">
           创作你的音乐
         </h2>
-        <p class="text-slate-400 text-sm sm:text-base max-w-2xl">
-          填写歌词、描述音乐风格，还可以上传参考音频，AI 将为你生成独一无二的音乐作品。
-        </p>
       </div>
 
       <!-- Vertical layout: Materials → Params → Generation -->
